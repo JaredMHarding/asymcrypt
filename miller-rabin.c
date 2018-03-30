@@ -1,59 +1,55 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <stdbool.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include "miller-rabin.h"
 
-bool isPrime(uint32_t n, uint32_t k) {
+bool isPrime(uint64_t n, int k) {
     // Corner cases
-    if ((n <= 1) || (n == 4)) return false;
-    if (n <= 3) return true;
-    if ((n & 0x1) == 0) return false;
+    if ( n == 2 || n == 3 ) return true;
+    if ( n <= 1 || !(n & 0x1) ) return false;
     // n is odd and greater than 3
     // r is the power of 2 that divides n-1
-    uint32_t r;
-    uint32_t d = factorOut2s(n-1,&r);
+    int r = 0;
+    // d will the odd number left over after dividing out the 2s
+    uint64_t d = n-1;
+    while ((d & 0x1) == 0) {
+        d >>= 1;
+        r++;
+    }
     // witness loop, repeat k times
-    while (k-- > 0) {
-        // pick a random integer a in the range [2, n - 2] inclusive
-        // rand() will be seeded in the main.c function
-        uint32_t a = (uint32_t) ((rand() % (n-3)) + 2);
-        uint32_t x = expBySquaring(a,d) % n;
-        if ((x == 1) || (x == (n-1))) continue;
-        bool cond2True = false;
+    for (int i = 0;i<k;i++) {
+        uint64_t a = randBetween(2,n-2);
+        uint64_t x = expBySquaring(a,d,n);
+        if ((x == 1) || (x == n-1)) continue;
         // repeat r-1 times
-        while (r-- > 1) {
-            x = (x*x) % n;
-            if (x == 1) {
-                return false;
-            }
-            if (x == (n-1)) {
-                cond2True = true;
-                break;
-            }
+        for (int j = 1;j <= (r-1);j++) {
+            x = expBySquaring(x,2,n);
+            if (x == 1) return false;
+            if (x == n-1) goto KLOOP;
         }
-        if (cond2True == true) continue;
         return false;
+KLOOP:
+        continue;
     }
     return true;
 }
 
-uint32_t factorOut2s(uint32_t n, uint32_t* rPtr) {
-    (*rPtr) = 0;
-    while ((n & 0x1) == 0) {
-        n = n >> 1;
-        (*rPtr)++;
-    }
-    return n;
-}
-
-uint32_t expBySquaring(uint32_t base, uint32_t exp) {
-    uint32_t result = 1;
+uint64_t expBySquaring(uint64_t base, uint64_t exp, uint64_t modulus) {
+    uint64_t result = 1;
     while (exp) {
-        if (exp & 0x1) {
-            result *= base;
+        if ((exp & 0x1) == 1) {
+            result = (__uint128_t) base*result % modulus;
         }
         exp >>= 1;
-        base *= base;
+        base = (__uint128_t) base*base % modulus;
     }
+    return result;
+}
+
+uint64_t randBetween(uint64_t min, uint64_t max) {
+    // assuming rand() is 32-bits
+    uint64_t r = (((uint64_t) rand()) << 32) | (((uint64_t) rand()) & UINT32_MAX);
+    uint64_t result = min + (uint64_t) ((double)(max-min+1)*r/(UINT64_MAX+1.0));
     return result;
 }

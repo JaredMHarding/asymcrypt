@@ -9,9 +9,9 @@
 int main(int argc, char** argv) {
     srand(time(NULL));
     printf("All primes less than 100:\n");
-    for (uint32_t i = 1;i < 100;i++) {
+    for (uint64_t i = 1000;i < 10000;i++) {
         if (isPrime(i,ACCURACY)) {
-            printf("%" PRIu32 " ",i);
+            printf("%" PRIu64 " ",i);
         }
     }
 }

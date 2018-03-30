@@ -4,10 +4,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-bool isPrime(uint32_t n, uint32_t k);
+bool isPrime(uint64_t n, int k);
 
-uint32_t factorOut2s(uint32_t n, uint32_t* rPtr);
+uint64_t expBySquaring(uint64_t base, uint64_t exp, uint64_t modulus);
 
-uint32_t expBySquaring(uint32_t base, uint32_t exp);
+uint64_t randBetween(uint64_t min, uint64_t max);
 
 #endif
