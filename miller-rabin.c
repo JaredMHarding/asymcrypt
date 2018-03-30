@@ -1,7 +1,6 @@
 #include <stdlib.h>
-#include <stdio.h>
 #include <stdbool.h>
-#include <inttypes.h>
+#include <stdint.h>
 #include "miller-rabin.h"
 
 bool isPrime(uint64_t n, int k) {
