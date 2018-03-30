@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define DEFAULTK 8
+
 bool isPrime(uint64_t n, int k);
 
 uint64_t expBySquaring(uint64_t base, uint64_t exp, uint64_t modulus);

@@ -4,8 +4,15 @@
 #include <stdint.h>
 #include <sys/stat.h>
 
+#define BUFSIZE 64
+#define BLOCKBYTES 4
+
 void keygen(uint64_t seed);
 
-void writeKeys(const char* pathname,uint64_t first,uint64_t second,uint64_t third,mode_t mode);
+void asymEncrypt(uint64_t seed);
+
+void putKeys(const char* pathname,uint64_t first,uint64_t second,uint64_t third,mode_t mode);
+
+void getKeys(const char* pathname,uint64_t* first,uint64_t* second,uint64_t* third);
 
 #endif
