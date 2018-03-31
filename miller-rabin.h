@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define DEFAULTK 8
+#define DEFAULTK 16
 
 bool isPrime(uint64_t n, int k);
 

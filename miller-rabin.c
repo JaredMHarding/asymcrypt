@@ -38,10 +38,10 @@ uint64_t expBySquaring(uint64_t base, uint64_t exp, uint64_t modulus) {
     uint64_t result = 1;
     while (exp) {
         if ((exp & 0x1) == 1) {
-            result = (__uint128_t) base*result % modulus;
+            result = ((__uint128_t) base*result) % modulus;
         }
         exp >>= 1;
-        base = (__uint128_t) base*base % modulus;
+        base = ((__uint128_t) base*base) % modulus;
     }
     return result;
 }

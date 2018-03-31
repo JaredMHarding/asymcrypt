@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <inttypes.h>
 #include <unistd.h>
@@ -16,13 +17,13 @@ void keygen(uint64_t seed) {
     uint64_t g = 2;
     uint64_t p = 0;
     do {
-        uint64_t q = randBetween(2,UINT64_MAX>>1);
-        if ((!isPrime(q,DEFAULTK)) || (q % 12 != 5)) {
-            continue;
-        }
+        // range is to ensure p has a high bit of 1
+        uint64_t q = randBetween(UINT64_MAX>>2,UINT64_MAX>>1);
+        if ((q % 12 != 5) || (!isPrime(q,DEFAULTK))) continue;
         p = (q<<1) + 1;
-        // p must be prime and greater than any message block
-    } while (!isPrime(p,DEFAULTK) || (p <= UINT32_MAX));
+        printf("Testing p = %" PRIu64 "\n",p);
+        // p must be prime and have a high bit of 1
+    } while (p <= (UINT64_MAX>>1) || !isPrime(p,DEFAULTK));
     // p is prime with 2 as a primative root
     uint64_t d = randBetween(1,p-1);
     uint64_t e2 = expBySquaring(g,d,p);
@@ -43,31 +44,65 @@ void asymEncrypt(uint64_t seed) {
     getKeys("pubkey.txt",&p,&g,&e2);
     int ptextfd = open("ptext.txt",O_RDONLY);
     if (ptextfd == -1) {
-        perror("open()");
+        perror("open(ptext.txt)");
         exit(EXIT_FAILURE);
     }
     int ctextfd = open("ctext.txt",O_WRONLY|O_CREAT|O_TRUNC,0644);
     if (ctextfd == -1) {
-        perror("open()");
+        perror("open(ctext.txt)");
         exit(EXIT_FAILURE);
     }
-    uint8_t mblock[BLOCKBYTES] = {0};
-    uint32_t* mblockptr = (uint32_t*) mblock;
-    ssize_t readBytes = 0;
-    while ((readBytes = read(ptextfd,mblockptr,BLOCKBYTES)) > 0) {
-        // pad a partial block using ANSI X.923 byte padding
-        if (readBytes < BLOCKBYTES) {
-            uint8_t padding = BLOCKBYTES - readBytes;
-            mblock[BLOCKBYTES-1] = padding;
-            for (int i = BLOCKBYTES-2;i>(readBytes-1);i--) {
-                mblock[i] = 0x00;
-            }
-        }
+    uint64_t mblock = 0;
+    while (read(ptextfd,&mblock,BLOCKBYTES) > 0) {
         uint64_t k = randBetween(0,p-1);
         uint64_t c1 = expBySquaring(g,k,p);
-        uint64_t c2 = (expBySquaring(e2,k,p)*(*mblockptr)) % p;
+        printf("c1 = %" PRIu64 "\n",c1);
+        uint64_t c2 = (expBySquaring(e2,k,p)*(mblock % p)) % p;
+        printf("c2 = %" PRIu64 "\n",c2);
         if (dprintf(ctextfd,"%" PRIu64 " %" PRIu64 "\n",c1,c2) < 0) {
             fprintf(stderr,"Error: Could not print to file \"ctext.txt\"\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+}
+
+void asymDecrypt() {
+    uint64_t p, g, d;
+    getKeys("prikey.txt",&p,&g,&d);
+    int ctextfd = open("ctext.txt",O_RDONLY);
+    if (ctextfd == -1) {
+        perror("open(ctext.txt)");
+        exit(EXIT_FAILURE);
+    }
+    int ptextfd = open("ptext.txt",O_WRONLY|O_CREAT|O_TRUNC,0644);
+    if (ptextfd == -1) {
+        perror("open(ptext.txt)");
+        exit(EXIT_FAILURE);
+    }
+    while (true) {
+        // this buffer will hold each line of the file
+        char buffer[BUFSIZE] = {0};
+        for (int i = 0;i<BUFSIZE;i++) {
+            ssize_t readBytes = read(ctextfd,&(buffer[i]),1);
+            if (readBytes == -1) {
+                perror("read(ctext.txt)");
+                exit(EXIT_FAILURE);
+            }
+            if (readBytes == 0) return;
+            if (buffer[i] == '\n') break;
+        }
+        // parse out the 2 ciphertext values from the buffer
+        char* secondStart = NULL;
+        uint64_t c1 = (uint64_t) strtoull(buffer,&secondStart,10);
+        printf("c1 = %" PRIu64 "\n",c1);
+        uint64_t c2 = (uint64_t) strtoull(secondStart,NULL,10);
+        printf("c2 = %" PRIu64 "\n",c2);
+        // calculate m from the ciphertext
+        uint64_t mblock = ((expBySquaring(c1,p-1-d,p))*(c2 % p)) % p;
+        printf("m = %" PRIu64 "\n",mblock);
+        // now write the message bytes to the plaintext file
+        if (write(ptextfd,&mblock,BLOCKBYTES) == -1) {
+            perror("write(ptext.txt)");
             exit(EXIT_FAILURE);
         }
     }
