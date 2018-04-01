@@ -56,7 +56,6 @@ void asymEncrypt(uint64_t seed) {
     while (read(ptextfd,&mblock,BLOCKBYTES) > 0) {
         printf("m = %016" PRIx64 "\n",mblock);
         uint64_t k = randBetween(0,p-1);
-        // uint64_t k = 4;
         uint64_t c1 = modExp(g,k,p);
         printf("c1 = %" PRIu64 "\n",c1);
         uint64_t c2 = modMul(modExp(e2,k,p),mblock,p);
@@ -78,9 +77,9 @@ void asymDecrypt() {
         perror("open(ctext.txt)");
         exit(EXIT_FAILURE);
     }
-    int ptextfd = open("ptext.txt",O_WRONLY|O_CREAT|O_TRUNC,0644);
-    if (ptextfd == -1) {
-        perror("open(ptext.txt)");
+    int dtextfd = open("dtext.txt",O_WRONLY|O_CREAT|O_TRUNC,0644);
+    if (dtextfd == -1) {
+        perror("open(dtext.txt)");
         exit(EXIT_FAILURE);
     }
     while (true) {
@@ -93,7 +92,7 @@ void asymDecrypt() {
                 exit(EXIT_FAILURE);
             }
             if (readBytes == 0) {
-                close(ptextfd);
+                close(dtextfd);
                 close(ctextfd);
                 return;
             }
@@ -107,10 +106,9 @@ void asymDecrypt() {
         //printf("c2 = %" PRIu64 "\n",c2);
         // calculate m from the ciphertext
         uint64_t mblock = modMul(modExp(c1,p-1-d,p),c2,p);
-        printf("m = %" PRIx64 "\n",mblock);
         // now write the message bytes to the plaintext file
-        if (write(ptextfd,&mblock,BLOCKBYTES) == -1) {
-            perror("write(ptext.txt)");
+        if (write(dtextfd,&mblock,BLOCKBYTES) == -1) {
+            perror("write(dtext.txt)");
             exit(EXIT_FAILURE);
         }
     }
