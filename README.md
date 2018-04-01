@@ -37,10 +37,12 @@ You may also enter `$ make clean` to remove all of the .o and executable files.
 
 To run the program, you may enter the following commands in the terminal...
 
-    * `$ ./asymcrypt keygen <seed>`
-    * `$ ./asymcrypt encrypt <seed>`
-    * `$ ./asymcrypt decrypt`
-
+```Shell Session
+$ ./asymcrypt keygen <seed>
+$ ./asymcrypt encrypt <seed>
+$ ./asymcrypt decrypt
+```
+    
 The `keygen` command will create two files, pubkey.txt and prikey.txt.
 The format of these files will be a single line file that contains the integer key values separated by single spaces, like so:
 
@@ -51,7 +53,7 @@ The `encrypt` command expects two files to exist, pubkey.txt (as formated above)
 This will create a file called ctext.txt (or overwrite an existing file) which has pairs of ciphertext values in base 10 on each line separated by a single space.
 
 The `decrypt` command expects two files to exist, prikey.txt (as formated above) and ctext.txt (as described above).
-This will create a file called ptext.txt (or overwrite an existing file) as described above.
+This will create a file called dtext.txt, which is the plaintext that was decrypted from the ciphertext.
 
 If the user does not provide a numerical seed value on the command line for the ones that need one, they will be prompted for it after pressing enter/return.
 
