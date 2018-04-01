@@ -26,7 +26,7 @@ void keygen(uint64_t seed) {
     } while (p <= (UINT64_MAX>>1) || !isPrime(p,DEFAULTK));
     // p is prime with 2 as a primative root
     uint64_t d = randBetween(1,p-1);
-    uint64_t e2 = expBySquaring(g,d,p);
+    uint64_t e2 = modExp(g,d,p);
     // output the keys to files
     putKeys("pubkey.txt",p,g,e2,0644);
     putKeys("prikey.txt",p,g,d,0600);
@@ -54,16 +54,20 @@ void asymEncrypt(uint64_t seed) {
     }
     uint64_t mblock = 0;
     while (read(ptextfd,&mblock,BLOCKBYTES) > 0) {
+        printf("m = %016" PRIx64 "\n",mblock);
         uint64_t k = randBetween(0,p-1);
-        uint64_t c1 = expBySquaring(g,k,p);
+        // uint64_t k = 4;
+        uint64_t c1 = modExp(g,k,p);
         printf("c1 = %" PRIu64 "\n",c1);
-        uint64_t c2 = (expBySquaring(e2,k,p)*(mblock % p)) % p;
+        uint64_t c2 = modMul(modExp(e2,k,p),mblock,p);
         printf("c2 = %" PRIu64 "\n",c2);
         if (dprintf(ctextfd,"%" PRIu64 " %" PRIu64 "\n",c1,c2) < 0) {
             fprintf(stderr,"Error: Could not print to file \"ctext.txt\"\n");
             exit(EXIT_FAILURE);
         }
     }
+    close(ptextfd);
+    close(ctextfd);
 }
 
 void asymDecrypt() {
@@ -88,18 +92,22 @@ void asymDecrypt() {
                 perror("read(ctext.txt)");
                 exit(EXIT_FAILURE);
             }
-            if (readBytes == 0) return;
+            if (readBytes == 0) {
+                close(ptextfd);
+                close(ctextfd);
+                return;
+            }
             if (buffer[i] == '\n') break;
         }
         // parse out the 2 ciphertext values from the buffer
         char* secondStart = NULL;
         uint64_t c1 = (uint64_t) strtoull(buffer,&secondStart,10);
-        printf("c1 = %" PRIu64 "\n",c1);
+        //printf("c1 = %" PRIu64 "\n",c1);
         uint64_t c2 = (uint64_t) strtoull(secondStart,NULL,10);
-        printf("c2 = %" PRIu64 "\n",c2);
+        //printf("c2 = %" PRIu64 "\n",c2);
         // calculate m from the ciphertext
-        uint64_t mblock = ((expBySquaring(c1,p-1-d,p))*(c2 % p)) % p;
-        printf("m = %" PRIu64 "\n",mblock);
+        uint64_t mblock = modMul(modExp(c1,p-1-d,p),c2,p);
+        printf("m = %" PRIx64 "\n",mblock);
         // now write the message bytes to the plaintext file
         if (write(ptextfd,&mblock,BLOCKBYTES) == -1) {
             perror("write(ptext.txt)");
